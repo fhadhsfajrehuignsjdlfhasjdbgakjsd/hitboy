@@ -1,0 +1,2 @@
+# hitboy
+Pygame study project
