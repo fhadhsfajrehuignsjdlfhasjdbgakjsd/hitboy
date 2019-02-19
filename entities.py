@@ -1,12 +1,8 @@
 from helpers import load_image
 import pygame
-from consts import (
-    HITBOY_SIZE,
-    HITBOY_START_POSITION,
-    FLOOR_RECT_POSITION,
-    BLACK,
-    G
-)
+from datetime import datetime
+from consts import *
+from random import choice
 
 
 class GameObject(object):
@@ -62,12 +58,7 @@ class Hitboy(GameObject):
 
     def __init__(self, x: int, y: int, floor: Floor):
         super().__init__(x, y)
-        self.rect = pygame.Rect(
-            x,
-            y,
-            HITBOY_SIZE[0],
-            HITBOY_SIZE[1]
-        )
+        self.update_rect()
         self.current_image_index = 0
         self.floor = floor
 
@@ -84,7 +75,8 @@ class Hitboy(GameObject):
         time_passed_in_secs: int,
         **kwargs
     ):
-        self.change_image()
+        if not (datetime.now().microsecond % CHANGE_IMAGE_PERIOD):
+            self.change_image()
         if self.stands_on_floor():
             if kwargs.get('up_button_clicked', False):
                 self.y_speed = self.jump_speed  # self.jump
@@ -119,6 +111,40 @@ class Hitboy(GameObject):
             self.current_image_index + 1) % len(self.images)
 
 
+class Obstacle(GameObject):
+    is_movable = True
+    speed = -300  # moving towards player
+
+    def __init__(self, x, y, image_name):
+        super().__init__(x, y)
+        self.image = pygame.transform.scale(
+            load_image(image_name), OBSTACLE_SIZE
+        )
+        self.update_rect()
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+    def move(self, time_passed_in_secs, **kwargs):
+        self.x += self.speed * time_passed_in_secs
+        self.update_rect()
+
+    def update_rect(self):
+        self.rect = pygame.Rect(
+            self.x,
+            self.y,
+            OBSTACLE_SIZE[0],
+            OBSTACLE_SIZE[1]
+        )
+
+
 entities = []  # all game objects
-entities.append(Floor(*FLOOR_RECT_POSITION[:2]))
-entities.append(Hitboy(*HITBOY_START_POSITION, entities[0]))
+entities.append(
+    Floor(*FLOOR_RECT_POSITION[:2])
+)
+entities.append(
+    Hitboy(*HITBOY_START_POSITION, entities[0])
+)
+entities.append(
+    Obstacle(*OBSTACLE_START_POSITION, choice(OBSTACLE_IMAGES_NAMES))
+)
