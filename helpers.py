@@ -27,3 +27,7 @@ def check_exit(events) -> bool:
 def up_button_clicked(events) -> bool:
     return any([event.key in (pygame.K_UP, pygame.K_w)
                 for event in events if event.type == pygame.KEYDOWN])
+
+
+def display_menu(screen):
+    pass

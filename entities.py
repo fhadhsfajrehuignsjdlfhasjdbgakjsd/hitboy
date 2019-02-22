@@ -8,6 +8,8 @@ from random import choice
 class GameObject(object):
     '''base object for all base objects'''
     is_movable = False
+    must_be_deleted = False
+    can_die = False
 
     def __init__(self, x: int, y: int):
         self.x, self.y = x, y
@@ -43,11 +45,11 @@ class Floor(GameObject):
 
 class Hitboy(GameObject):
     '''represents our character'''
-    dead = False
+    can_die = True
     is_movable = True  # character moves upside down
-    dead_image = load_image('hitboy_dead.png')
     y_speed, jump_speed = 0, -400  # pix per second
     can_kill_hitboy = False
+    dead = False
 
     images = [
         pygame.transform.scale(image, HITBOY_SIZE) for image in (
@@ -55,6 +57,9 @@ class Hitboy(GameObject):
             load_image('hitboy1.png')
         )
     ]
+    dead_image = pygame.transform.scale(
+        load_image('hitboy_dead.png'), DEAD_HITBOY_SIZE
+    )
 
     def __init__(self, x: int, y: int, floor: Floor):
         super().__init__(x, y)
@@ -63,12 +68,20 @@ class Hitboy(GameObject):
         self.floor = floor
 
     def update_rect(self):
-        self.rect = pygame.Rect(
-            self.x,
-            self.y,
-            HITBOY_SIZE[0],
-            HITBOY_SIZE[1]
-        )
+        if not self.dead:
+            self.rect = pygame.Rect(
+                self.x,
+                self.y,
+                HITBOY_SIZE[0],
+                HITBOY_SIZE[1]
+            )
+        else:
+            self.rect = pygame.Rect(
+                self.x,
+                self.y,
+                DEAD_HITBOY_SIZE[0],
+                DEAD_HITBOY_SIZE[1]
+            )
 
     def move(
         self,
@@ -96,7 +109,10 @@ class Hitboy(GameObject):
         return self.rect.colliderect(self.floor.rect)
 
     def draw(self, screen):
-        screen.blit(self.images[self.current_image_index], self.rect)
+        if not self.dead:
+            screen.blit(self.images[self.current_image_index], self.rect)
+        else:
+            screen.blit(self.dead_image, self.rect)
 
     def __str__(self):
         return "Hitboy! x: {}, y: {}, current_image: {}, y_speed: {}".format(
@@ -109,6 +125,15 @@ class Hitboy(GameObject):
     def change_image(self):
         self.current_image_index = (
             self.current_image_index + 1) % len(self.images)
+    
+    def try_to_die(self, obstacles) -> bool:
+        for obstacle in obstacles:
+            if obstacle.rect.colliderect(self.rect):
+                self.dead = True
+                self.y = DEAD_HITBOY_Y_POSITION
+                self.update_rect()
+                return self.dead
+        return False
 
 
 class Obstacle(GameObject):
@@ -127,6 +152,8 @@ class Obstacle(GameObject):
 
     def move(self, time_passed_in_secs, **kwargs):
         self.x += self.speed * time_passed_in_secs
+        if self.x <= 0 - OBSTACLE_SIZE[0]:
+            self.must_be_deleted = True
         self.update_rect()
 
     def update_rect(self):
@@ -137,8 +164,12 @@ class Obstacle(GameObject):
             OBSTACLE_SIZE[1]
         )
 
+    def delete(self):
+        del self
+
 
 entities = []  # all game objects
+obstacles = []  # things that can kill hitboy
 entities.append(
     Floor(*FLOOR_RECT_POSITION[:2])
 )
@@ -148,3 +179,5 @@ entities.append(
 entities.append(
     Obstacle(*OBSTACLE_START_POSITION, choice(OBSTACLE_IMAGES_NAMES))
 )
+
+obstacles.append(entities[-1])

@@ -11,6 +11,8 @@ OBSTACLE_START_POSITION = (960, 470)
 OBSTACLE_IMAGES_NAMES = [
     'obstacle0.png'
 ]
+DEAD_HITBOY_SIZE = (60, 35)
+DEAD_HITBOY_Y_POSITION = (465)
 
 
 class GameStatuses:
