@@ -1,8 +1,9 @@
 from helpers import load_image, check_pause
 import pygame
 from datetime import datetime
+import time
 from consts import *
-from random import choice
+from random import choice, uniform
 import threading
 
 
@@ -45,10 +46,10 @@ class Floor(GameObject):
 
 
 class Hitboy(GameObject):
-    '''represents our character'''
+    '''represents our character and his score'''
     can_die = True
     is_movable = True  # character moves upside down
-    y_speed, jump_speed = 0, -400  # pix per second
+    y_speed, jump_speed = 0, -600  # pix per second
     can_kill_hitboy = False
     dead = False
 
@@ -171,7 +172,27 @@ class Obstacle(GameObject):
         del self
 
 
+# score is not game object
+class Score(object):
+
+    def __init__(self):
+        self.rect = pygame.Rect(*SCORE_INITIAL_POSITION, *SCORE_SIZE)
+        self.reset_score()
+    
+    def reset_score(self):
+        self.timer = time.time()
+        self.current_score = 0
+
+    def increase(self):
+        self.current_score += (time.time() - self.timer) / 25
+    
+    def draw(self, screen):
+        print(int(self.current_score))
+
+
+#  menu is not game object
 class Menu(object):
+
     def __init__(self, game_status: int):
         self.game_status = game_status
         self.play_item_rect = pygame.Rect(*MENU_PLAY_ITEM_POSITION)
@@ -230,13 +251,39 @@ class Menu(object):
         )
 
 
+# responsible for adding objects
+class ObstacleAdder(object):
+
+    def __init__(self, *args, **kwargs):
+        self.reset_timer()
+        self.reset_tbno()
+
+    def reset_timer(self):
+        self.timer = time.time()
+
+    def reset_tbno(self):
+        self.time_before_next_obstacle = uniform(0.45, 0.9)
+
+    def add_obstacle_if_necessary(self, entities, obstacles):
+        if time.time() - self.timer >= self.time_before_next_obstacle:
+            self.reset_timer()
+            self.reset_tbno()
+            obstacle = Obstacle(*OBSTACLE_START_POSITION)
+            obstacles.append(obstacle)
+            entities.append(obstacle)
+
+
 menu = Menu(GameStatuses.MENU)
 pause_menu = Menu(GameStatuses.PAUSE)
-entities = None
-obstacles = None
+obstacle_adder = ObstacleAdder()
+score = Score()
+entities = []  # all game objects
+obstacles = []  # all objects that can kill hero
 
 
-def start_new_game(entities, obstacles):
+def start_new_game(entities, obstacles, obstacle_adder, score):
+    obstacle_adder.reset_timer()
+    score.reset_score()
     entities = []  # all game objects
     obstacles = []  # things that can kill hitboy
     entities.append(
@@ -247,10 +294,3 @@ def start_new_game(entities, obstacles):
     )
 
     return entities, obstacles
-
-
-def add_obstacle(entities, obstacles):
-    threading.Timer(5.0)
-    obstacle = Obstacle(*OBSTACLE_START_POSITION)
-    obstacles.append(obstacle)
-    entities.append(obstacle)

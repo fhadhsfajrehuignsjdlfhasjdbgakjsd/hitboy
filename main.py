@@ -12,9 +12,10 @@ from entities import (
     entities, 
     obstacles, 
     menu, 
+    score,
     pause_menu,
     start_new_game,
-    add_obstacle_if_necessary
+    obstacle_adder
 )
 
 timer = pygame.time.Clock()
@@ -37,7 +38,7 @@ while True:
         if user_choice is not None:
             if user_choice == UserChoicesMenu.PLAY:
                 game_status = GameStatuses.PLAYING
-                entities, obstacles = start_new_game(entities, obstacles)                
+                entities, obstacles = start_new_game(entities, obstacles, obstacle_adder, score)                
             elif user_choice == UserChoicesMenu.EXIT:
                 pygame.quit()
                 exit(0)
@@ -59,7 +60,7 @@ while True:
                 exit(0)
             elif user_choice == UserChoicesMenu.RESTART:
                 game_status = GameStatuses.PLAYING
-                entities, obstacles = start_new_game(entities, obstacles)
+                entities, obstacles = start_new_game(entities, obstacles, obstacle_adder, score)
             if user_choice == UserChoicesMenu.PLAY:
                     game_status = GameStatuses.PLAYING            
 
@@ -74,7 +75,7 @@ while True:
         if user_choice is not None:
             if user_choice == UserChoicesMenu.PLAY:
                 game_status = GameStatuses.PLAYING
-                entities, obstacles = start_new_game(entities, obstacles)
+                entities, obstacles = start_new_game(entities, obstacles, obstacle_adder, score)
             elif user_choice == UserChoicesMenu.EXIT:
                 pygame.quit()
                 exit(0)
@@ -83,6 +84,8 @@ while True:
 
     elif game_status == GameStatuses.PLAYING:
         events = pygame.event.get()
+        score.increase()
+        score.draw(screen)
         if check_pause(events):
             game_status = GameStatuses.PAUSE
             continue
@@ -90,7 +93,7 @@ while True:
             pygame.quit()
             exit(0)
         clean_screen(screen, GameStatuses.PLAYING)
-        add_obstacle_if_necessary(entities, obstacles)
+        obstacle_adder.add_obstacle_if_necessary(entities, obstacles)
         for entity in entities:
             if entity.is_movable:
                 entity.move(
