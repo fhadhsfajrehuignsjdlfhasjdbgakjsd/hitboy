@@ -1,8 +1,9 @@
-from helpers import load_image
+from helpers import load_image, check_pause
 import pygame
 from datetime import datetime
 from consts import *
 from random import choice
+import threading
 
 
 class GameObject(object):
@@ -57,6 +58,7 @@ class Hitboy(GameObject):
             load_image('hitboy1.png')
         )
     ]
+
     dead_image = pygame.transform.scale(
         load_image('hitboy_dead.png'), DEAD_HITBOY_SIZE
     )
@@ -138,9 +140,10 @@ class Hitboy(GameObject):
 
 class Obstacle(GameObject):
     is_movable = True
-    speed = -300  # moving towards player
+    speed = -500  # moving towards player
 
-    def __init__(self, x, y, image_name):
+    def __init__(self, x, y):
+        image_name = choice(OBSTACLE_IMAGES_NAMES)
         super().__init__(x, y)
         self.image = pygame.transform.scale(
             load_image(image_name), OBSTACLE_SIZE
@@ -168,16 +171,86 @@ class Obstacle(GameObject):
         del self
 
 
-entities = []  # all game objects
-obstacles = []  # things that can kill hitboy
-entities.append(
-    Floor(*FLOOR_RECT_POSITION[:2])
-)
-entities.append(
-    Hitboy(*HITBOY_START_POSITION, entities[0])
-)
-entities.append(
-    Obstacle(*OBSTACLE_START_POSITION, choice(OBSTACLE_IMAGES_NAMES))
-)
+class Menu(object):
+    def __init__(self, game_status: int):
+        self.game_status = game_status
+        self.play_item_rect = pygame.Rect(*MENU_PLAY_ITEM_POSITION)
+        if self.game_status == GameStatuses.MENU:
+            self.about_item_rect = pygame.Rect(*MENU_ABOUT_ITEM_POSITION)
+        else:
+            self.restart_item_rect = pygame.Rect(*MENU_RESTART_ITEM_POSITION)            
+        self.exit_item_rect = pygame.Rect(*MENU_EXIT_ITEM_POSITION)
+        self.font = pygame.font.Font('fonts/Roboto-Black.ttf', 50)
 
-obstacles.append(entities[-1])
+    def get_user_choice(self, events):
+        if check_pause(events):
+            return UserChoicesMenu.PLAY
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONUP:
+                pos = pygame.mouse.get_pos()
+                if self.play_item_rect.collidepoint(pos):
+                    return UserChoicesMenu.PLAY
+                elif self.exit_item_rect.collidepoint(pos):
+                    return UserChoicesMenu.EXIT
+                if self.game_status == GameStatuses.MENU:
+                    if self.about_item_rect.collidepoint(pos):
+                        return UserChoicesMenu.ABOUT
+                else:
+                    if self.restart_item_rect.collidepoint(pos):
+                        return UserChoicesMenu.RESTART
+        return None
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, BLACK, self.play_item_rect, 2)
+        if self.game_status == GameStatuses.MENU:
+            screen.blit(
+                self.font.render('Play', True, BLACK),
+                tuple(map(lambda x: x + 25, MENU_PLAY_ITEM_POSITION[:2]))
+            )
+            pygame.draw.rect(screen, BLACK, self.about_item_rect, 2)
+            screen.blit(
+                self.font.render('About', True, BLACK),
+                tuple(map(lambda x: x + 25, MENU_ABOUT_ITEM_POSITION[:2]))
+            )
+        else:
+            screen.blit(
+                self.font.render('Continue', True, BLACK),
+                tuple(map(lambda x: x + 25, MENU_PLAY_ITEM_POSITION[:2]))
+            )
+            pygame.draw.rect(screen, BLACK, self.restart_item_rect, 2)
+            screen.blit(
+                self.font.render('Restart', True, BLACK),
+                tuple(map(lambda x: x + 25, MENU_RESTART_ITEM_POSITION[:2]))
+            )
+        
+        pygame.draw.rect(screen, BLACK, self.exit_item_rect, 2)
+        screen.blit(
+            self.font.render('Exit', True, BLACK),
+            tuple(map(lambda x: x + 25, MENU_EXIT_ITEM_POSITION[:2]))
+        )
+
+
+menu = Menu(GameStatuses.MENU)
+pause_menu = Menu(GameStatuses.PAUSE)
+entities = None
+obstacles = None
+
+
+def start_new_game(entities, obstacles):
+    entities = []  # all game objects
+    obstacles = []  # things that can kill hitboy
+    entities.append(
+        Floor(*FLOOR_RECT_POSITION[:2])
+    )
+    entities.append(
+        Hitboy(*HITBOY_START_POSITION, entities[0])
+    )
+
+    return entities, obstacles
+
+
+def add_obstacle(entities, obstacles):
+    threading.Timer(5.0)
+    obstacle = Obstacle(*OBSTACLE_START_POSITION)
+    obstacles.append(obstacle)
+    entities.append(obstacle)

@@ -1,7 +1,11 @@
 import os
 
 import pygame
-from consts import BLUE
+from consts import (
+    BLUE,
+    GREY,
+    GameStatuses
+)
 
 
 def load_image(name):
@@ -17,11 +21,19 @@ def load_image(name):
 
 
 def clean_screen(screen, game_status):
-    screen.fill(BLUE)
+    if game_status == GameStatuses.PLAYING:
+        screen.fill(BLUE)
+    elif game_status == GameStatuses.MENU:
+        screen.fill(GREY)
 
 
 def check_exit(events) -> bool:
     return any([event.type == pygame.QUIT for event in events])
+
+
+def check_pause(events) -> bool:
+    return any([event.key == pygame.K_ESCAPE
+                for event in events if event.type == pygame.KEYDOWN])
 
 
 def up_button_clicked(events) -> bool:
@@ -29,5 +41,5 @@ def up_button_clicked(events) -> bool:
                 for event in events if event.type == pygame.KEYDOWN])
 
 
-def display_menu(screen):
-    pass
+def get_user_choice_menu(events):
+    return None
