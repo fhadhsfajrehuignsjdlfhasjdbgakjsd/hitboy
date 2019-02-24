@@ -23,6 +23,7 @@ timer = pygame.time.Clock()
 # pygame.mixer.music.load("audio/monster.mp3")
 # pygame.mixer.music.play()
 game_status = GameStatuses.MENU
+max_score = get_max_score()
 pygame.display.set_caption('Hitboy.')
 pygame.display.set_icon(load_image('favicon.png'))
 
@@ -84,8 +85,6 @@ while True:
 
     elif game_status == GameStatuses.PLAYING:
         events = pygame.event.get()
-        score.increase()
-        score.draw(screen)
         if check_pause(events):
             game_status = GameStatuses.PAUSE
             continue
@@ -93,6 +92,8 @@ while True:
             pygame.quit()
             exit(0)
         clean_screen(screen, GameStatuses.PLAYING)
+        score.increase()
+        score.draw(screen)
         obstacle_adder.add_obstacle_if_necessary(entities, obstacles)
         for entity in entities:
             if entity.is_movable:
@@ -104,6 +105,7 @@ while True:
                 dead = entity.try_to_die(obstacles)
                 if dead:
                     entity.draw(screen)
+                    score.check_new_max_score()
                     pygame.display.flip()
                     game_status = GameStatuses.GAME_OVER
                     break

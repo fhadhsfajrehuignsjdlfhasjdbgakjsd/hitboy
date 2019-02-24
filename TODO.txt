@@ -1,2 +1,0 @@
-1) Make thread to add obstacles and planes depending on game_status
-2) Store user settings in json file

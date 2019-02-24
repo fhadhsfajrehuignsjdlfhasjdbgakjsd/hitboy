@@ -5,6 +5,7 @@ import time
 from consts import *
 from random import choice, uniform
 import threading
+from helpers import get_max_score, set_max_score
 
 
 class GameObject(object):
@@ -176,18 +177,30 @@ class Obstacle(GameObject):
 class Score(object):
 
     def __init__(self):
-        self.rect = pygame.Rect(*SCORE_INITIAL_POSITION, *SCORE_SIZE)
+        self.max_score = get_max_score()
+        self.font = pygame.font.Font('fonts/Roboto-Black.ttf', 25)
         self.reset_score()
     
+    def check_new_max_score(self):
+        if self.current_score >= self.max_score:
+            self.max_score = self.current_score
+            set_max_score(self.max_score)
+
     def reset_score(self):
-        self.timer = time.time()
         self.current_score = 0
 
     def increase(self):
-        self.current_score += (time.time() - self.timer) / 25
+        self.current_score += 0.1
     
     def draw(self, screen):
-        print(int(self.current_score))
+        screen.blit(
+                self.font.render(str(int(self.current_score)), True, BLACK),
+                SCORE_INITIAL_POSITION
+            )
+        screen.blit(
+            self.font.render('Max: ' + str(int(self.max_score)), True, BLACK),
+            MAX_SCORE_INITIAL_POSITION
+        )
 
 
 #  menu is not game object
