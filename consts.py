@@ -1,6 +1,7 @@
 # general:
 SCREEN_SIZE = (1000, 550)  # pygame display size
 FLOOR_RECT_POSITION = (0, 500, 1000, 50)  # x, y, width, height
+POINTER_SIZE = (20, 20)
 ABOUT_URL = 'https://github.com/solemn-leader/hitboy/blob/master/README.md'
 # colors:
 BLUE = (173, 216, 230)
