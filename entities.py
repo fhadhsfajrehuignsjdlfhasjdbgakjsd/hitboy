@@ -3,7 +3,7 @@ import pygame
 from datetime import datetime
 import time
 from consts import *
-from random import choice, uniform
+from random import choice, uniform, randint
 import threading
 from helpers import get_max_score, set_max_score
 
@@ -70,6 +70,7 @@ class Hitboy(GameObject):
         self.update_rect()
         self.current_image_index = 0
         self.floor = floor
+        self.weapon = Weapon(*WEAPON_INITIAL_POSITION)
 
     def update_rect(self):
         if not self.dead:
@@ -99,11 +100,14 @@ class Hitboy(GameObject):
                 self.y_speed = self.jump_speed  # self.jump
             else:
                 self.put_hero_on_the_ground()
+                self.weapon.put_weapon_on_the_ground()
                 self.y_speed = 0
         else:
             self.y_speed += G * time_passed_in_secs
         self.y += int(self.y_speed * time_passed_in_secs)
+        self.weapon.y += int(self.y_speed * time_passed_in_secs)
         self.update_rect()
+        self.weapon.update_rect()
 
     def put_hero_on_the_ground(self):
         self.x, self.y = HITBOY_START_POSITION
@@ -129,7 +133,7 @@ class Hitboy(GameObject):
     def change_image(self):
         self.current_image_index = (
             self.current_image_index + 1) % len(self.images)
-    
+
     def try_to_die(self, obstacles) -> bool:
         for obstacle in obstacles:
             if obstacle.rect.colliderect(self.rect):
@@ -140,21 +144,78 @@ class Hitboy(GameObject):
         return False
 
 
-class Obstacle(GameObject):
-    is_movable = True
-    speed = -500  # moving towards player
+class Weapon(GameObject):
+    # weapon is not movable, it moves with hitboy
 
     def __init__(self, x, y):
+        super().__init__(x, y)
+        self.image = pygame.transform.scale(
+            load_image('launcher.png'), WEAPON_SIZE
+        )
+        self.update_rect()
+    
+    def put_weapon_on_the_ground(self):
+        self.x, self.y = WEAPON_INITIAL_POSITION
+        self.update_rect()
+
+    def update_rect(self):
+        self.rect = pygame.Rect(
+            self.x,
+            self.y,
+            WEAPON_SIZE[0],
+            WEAPON_SIZE[1]
+        )
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+    
+
+class Obstacle(GameObject):
+    is_movable = True
+
+    def __init__(self, x, y, speed):
         image_name = choice(OBSTACLE_IMAGES_NAMES)
         super().__init__(x, y)
         self.image = pygame.transform.scale(
             load_image(image_name), OBSTACLE_SIZE
         )
         self.update_rect()
+        self.speed = speed
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
+    def move(self, time_passed_in_secs, **kwargs):
+        self.x += self.speed * time_passed_in_secs
+        if self.x <= 0 - OBSTACLE_SIZE[0]:
+            self.must_be_deleted = True
+        self.update_rect()
+
+    def update_rect(self):
+        self.rect = pygame.Rect(
+            self.x,
+            self.y,
+            OBSTACLE_SIZE[0],
+            OBSTACLE_SIZE[1]
+        )
+
+    def delete(self):
+        del self
+
+
+class Plane(GameObject):
+    is_movable = True
+
+    def __init__(self, x, y, speed):
+        super().__init__(x, y)
+        self.image = pygame.transform.scale(
+            load_image('plane.png'), PLANE_SIZE)
+        self.update_rect()
+        self.speed = speed
+        
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+    
     def move(self, time_passed_in_secs, **kwargs):
         self.x += self.speed * time_passed_in_secs
         if self.x <= 0 - OBSTACLE_SIZE[0]:
@@ -265,37 +326,78 @@ class Menu(object):
 
 
 # responsible for adding objects
-class ObstacleAdder(object):
+class ObjectAdder(object):
 
     def __init__(self, *args, **kwargs):
-        self.reset_timer()
-        self.reset_tbno()
+        self.reset_everything()
 
-    def reset_timer(self):
-        self.timer = time.time()
+    def reset_everything(self):
+        self.reset_obstacle_timer()
+        self.reset_plane_timer()
+        self.reset_tbno()
+        self.reset_tbnp()
+        self.reset_soo()
+        self.reset_sop()
+
+    def reset_obstacle_timer(self):
+        self.obstacle_timer = time.time()
+    
+    def reset_plane_timer(self):
+        self.plane_timer = time.time()
+
+    def reset_timers(self):
+        self.reset_obstacle_timer()
+        self.reset_plane_timer()
 
     def reset_tbno(self):
         self.time_before_next_obstacle = uniform(0.45, 0.9)
 
+    def reset_tbnp(self):
+        self.time_before_next_plane = uniform(1.9, 2.5)
+
+    def reset_sop(self):
+        self.speed_of_plane = -100
+
+    def reset_soo(self):
+        self.speed_of_obstacle = -500
+
+    def add_planes_and_obstacles_if_necessary(self, entities, obstacles):
+        self.add_obstacle_if_necessary(entities, obstacles)
+        self.add_plane_if_necessary(entities)
+
     def add_obstacle_if_necessary(self, entities, obstacles):
-        if time.time() - self.timer >= self.time_before_next_obstacle:
-            self.reset_timer()
+        if time.time() - self.obstacle_timer >= self.time_before_next_obstacle:
+            self.reset_obstacle_timer()
             self.reset_tbno()
-            obstacle = Obstacle(*OBSTACLE_START_POSITION)
+            obstacle = Obstacle(
+                *OBSTACLE_START_POSITION, self.speed_of_obstacle)
+            self.speed_of_obstacle -= 2
             obstacles.append(obstacle)
             entities.append(obstacle)
+
+    def add_plane_if_necessary(self, entities):
+        if time.time() - self.plane_timer >= self.time_before_next_plane:
+            self.reset_plane_timer()
+            self.reset_tbnp()
+            plane = Plane(
+                PLANE_INITIAL_X_POSITION,
+                randint(*PLANE_Y_POSITION_RANGE),
+                self.speed_of_plane
+            )
+            self.speed_of_plane -= 5
+            entities.append(plane)
 
 
 menu = Menu(GameStatuses.MENU)
 pause_menu = Menu(GameStatuses.PAUSE)
-obstacle_adder = ObstacleAdder()
+object_adder = ObjectAdder()
 score = Score()
 entities = []  # all game objects
 obstacles = []  # all objects that can kill hero
 
 
 def start_new_game(entities, obstacles, obstacle_adder, score):
-    obstacle_adder.reset_timer()
+    obstacle_adder.reset_everything()
     score.reset_score()
     entities = []  # all game objects
     obstacles = []  # things that can kill hitboy
@@ -304,6 +406,9 @@ def start_new_game(entities, obstacles, obstacle_adder, score):
     )
     entities.append(
         Hitboy(*HITBOY_START_POSITION, entities[0])
+    )
+    entities.append(
+        entities[-1].weapon
     )
 
     return entities, obstacles

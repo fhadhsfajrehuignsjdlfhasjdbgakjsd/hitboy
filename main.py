@@ -14,7 +14,7 @@ def main():
         score,
         pause_menu,
         start_new_game,
-        obstacle_adder
+        object_adder
     )
     from helpers import (
         get_max_score,
@@ -50,7 +50,7 @@ def main():
                     game_status = GameStatuses.PLAYING
                     pygame.mouse.set_visible(False)
                     entities, obstacles = start_new_game(
-                        entities, obstacles, obstacle_adder, score)
+                        entities, obstacles, object_adder, score)
                 elif user_choice == UserChoicesMenu.EXIT:
                     pygame.quit()
                     exit(0)
@@ -66,6 +66,7 @@ def main():
             user_choice = pause_menu.get_user_choice(events)
             if user_choice is not None:
                 if user_choice == UserChoicesMenu.PLAY:
+                    object_adder.reset_timers()
                     game_status = GameStatuses.PLAYING
                     pygame.mouse.set_visible(False)
                 elif user_choice == UserChoicesMenu.EXIT:
@@ -74,7 +75,7 @@ def main():
                 elif user_choice == UserChoicesMenu.RESTART:
                     game_status = GameStatuses.PLAYING
                     entities, obstacles = start_new_game(
-                        entities, obstacles, obstacle_adder, score)
+                        entities, obstacles, object_adder, score)
                     pygame.mouse.set_visible(False)
 
         elif game_status == GameStatuses.MENU:
@@ -90,7 +91,7 @@ def main():
                     game_status = GameStatuses.PLAYING
                     pygame.mouse.set_visible(False)
                     entities, obstacles = start_new_game(
-                        entities, obstacles, obstacle_adder, score)
+                        entities, obstacles, object_adder, score)
                 elif user_choice == UserChoicesMenu.EXIT:
                     pygame.quit()
                     exit(0)
@@ -109,7 +110,8 @@ def main():
             clean_screen(screen, GameStatuses.PLAYING)
             score.increase()
             score.draw(screen)
-            obstacle_adder.add_obstacle_if_necessary(entities, obstacles)
+            object_adder.add_planes_and_obstacles_if_necessary(
+                entities, obstacles)
             for entity in entities:
                 if entity.is_movable:
                     entity.move(
