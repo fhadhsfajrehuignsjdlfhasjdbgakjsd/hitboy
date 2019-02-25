@@ -10,6 +10,8 @@ def main():
     from entities import (
         entities,
         obstacles,
+        planes,
+        rockets,
         menu,
         score,
         pause_menu,
@@ -22,8 +24,8 @@ def main():
         clean_screen,
         check_exit,
         check_pause,
-        get_user_choice_menu,
-        up_button_clicked
+        up_button_clicked,
+        where_to_shoot,
     )
     import webbrowser
     timer = pygame.time.Clock()
@@ -110,8 +112,9 @@ def main():
             clean_screen(screen, GameStatuses.PLAYING)
             score.increase()
             score.draw(screen)
-            object_adder.add_planes_and_obstacles_if_necessary(
-                entities, obstacles)
+            # object_adder.add_planes_and_obstacles_if_necessary(
+            #     entities, obstacles, planes)
+            object_adder.add_rockets_if_necessary(entities, rockets, entities[1].weapon.get_rocket_initial_point(), where_to_shoot(events))
             for entity in entities:
                 if entity.is_movable:
                     entity.move(

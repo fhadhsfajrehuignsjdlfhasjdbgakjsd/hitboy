@@ -1,4 +1,4 @@
-from helpers import load_image, check_pause
+from helpers import *
 import pygame
 from datetime import datetime
 import time
@@ -153,6 +153,9 @@ class Weapon(GameObject):
             load_image('launcher.png'), WEAPON_SIZE
         )
         self.update_rect()
+        
+    def get_rocket_initial_point(self):
+        return (self.x + WEAPON_SIZE[0], self.y + WEAPON_SIZE[1])
     
     def put_weapon_on_the_ground(self):
         self.x, self.y = WEAPON_INITIAL_POSITION
@@ -232,6 +235,36 @@ class Plane(GameObject):
 
     def delete(self):
         del self
+
+
+class Rocket(GameObject):
+    is_movable = True
+
+    def __init__(self, x, y, k):
+        # y = kx
+        self.image = pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE)
+        super().__init__(x, y)
+        self.k = k
+        self.x_speed = 10 if k < 1 else -10
+        self.y_speed = abs(self.x_speed * self.k)
+        self.update_rect()
+        print(self.k)
+    
+    def update_rect(self):
+        self.rect = pygame.Rect(
+            self.x,
+            self.y,
+            ROCKET_SIZE[0],
+            ROCKET_SIZE[1]
+        )
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+    def move(self, time_passed_in_secs, **kwargs):
+        self.x += int(self.x_speed * time_passed_in_secs)
+        self.y += int(self.y_speed * time_passed_in_secs)
+        self.update_rect()
 
 
 # score is not game object
@@ -334,6 +367,7 @@ class ObjectAdder(object):
     def reset_everything(self):
         self.reset_obstacle_timer()
         self.reset_plane_timer()
+        self.reset_shoot_timer()
         self.reset_tbno()
         self.reset_tbnp()
         self.reset_soo()
@@ -342,12 +376,16 @@ class ObjectAdder(object):
     def reset_obstacle_timer(self):
         self.obstacle_timer = time.time()
     
+    def reset_shoot_timer(self):
+        self.shoot_timer = time.time()
+    
     def reset_plane_timer(self):
         self.plane_timer = time.time()
 
     def reset_timers(self):
         self.reset_obstacle_timer()
         self.reset_plane_timer()
+        self.reset_shoot_timer()
 
     def reset_tbno(self):
         self.time_before_next_obstacle = uniform(0.45, 0.9)
@@ -361,9 +399,10 @@ class ObjectAdder(object):
     def reset_soo(self):
         self.speed_of_obstacle = -500
 
-    def add_planes_and_obstacles_if_necessary(self, entities, obstacles):
+    def add_planes_and_obstacles_if_necessary(
+            self, entities, obstacles, planes):
         self.add_obstacle_if_necessary(entities, obstacles)
-        self.add_plane_if_necessary(entities)
+        self.add_plane_if_necessary(entities, planes)
 
     def add_obstacle_if_necessary(self, entities, obstacles):
         if time.time() - self.obstacle_timer >= self.time_before_next_obstacle:
@@ -375,7 +414,7 @@ class ObjectAdder(object):
             obstacles.append(obstacle)
             entities.append(obstacle)
 
-    def add_plane_if_necessary(self, entities):
+    def add_plane_if_necessary(self, entities, planes):
         if time.time() - self.plane_timer >= self.time_before_next_plane:
             self.reset_plane_timer()
             self.reset_tbnp()
@@ -386,6 +425,17 @@ class ObjectAdder(object):
             )
             self.speed_of_plane -= 5
             entities.append(plane)
+            planes.append(plane)
+    
+    def add_rockets_if_necessary(self, entities, rockets, rocket_start_pos, position):
+        if position == (-1, -1):
+            return
+        if time.time() - self.shoot_timer >= 1.0:  # we can shoot once per second
+            k = find_k(*get_abs_from_pygame_coords(position))
+            rocket = Rocket(*rocket_start_pos, k)
+            entities.append(rocket)
+            rockets.append(rocket)
+            self.reset_shoot_timer()
 
 
 menu = Menu(GameStatuses.MENU)
@@ -394,6 +444,8 @@ object_adder = ObjectAdder()
 score = Score()
 entities = []  # all game objects
 obstacles = []  # all objects that can kill hero
+planes = []
+rockets = []
 
 
 def start_new_game(entities, obstacles, obstacle_adder, score):
@@ -401,6 +453,8 @@ def start_new_game(entities, obstacles, obstacle_adder, score):
     score.reset_score()
     entities = []  # all game objects
     obstacles = []  # things that can kill hitboy
+    planes = []
+    rockets = []
     entities.append(
         Floor(*FLOOR_RECT_POSITION[:2])
     )

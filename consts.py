@@ -37,6 +37,8 @@ PLANE_SIZE = (100, 50)
 # weapon
 WEAPON_INITIAL_POSITION = (95, 441)
 WEAPON_SIZE = (60, 40)
+# rocket
+ROCKET_SIZE = (20, 10)
 
 
 class GameStatuses:

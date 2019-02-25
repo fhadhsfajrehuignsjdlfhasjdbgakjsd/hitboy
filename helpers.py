@@ -5,7 +5,8 @@ import json
 from consts import (
     BLUE,
     GREY,
-    GameStatuses
+    GameStatuses,
+    SCREEN_SIZE
 )
 
 
@@ -35,15 +36,29 @@ def check_exit(events) -> bool:
 def check_pause(events) -> bool:
     return any([event.key == pygame.K_ESCAPE
                 for event in events if event.type == pygame.KEYDOWN])
+    
+
+def where_to_shoot(events) -> (int, int):
+    '''gets the point where user clicks in pygame system
+    returns (-1, -1) if we must not shoot'''
+    for event in events:
+        if event.type == pygame.MOUSEBUTTONUP:
+            pos = pygame.mouse.get_pos()
+            return pos
+    return (-1, -1)
+
+
+def get_abs_from_pygame_coords(coords: (int, int)):
+    return (coords[0], SCREEN_SIZE[1] - coords[1])
+
+
+def find_k(x, y):
+    return y / x
 
 
 def up_button_clicked(events) -> bool:
     return any([event.key in (pygame.K_UP, pygame.K_w)
                 for event in events if event.type == pygame.KEYDOWN])
-
-
-def get_user_choice_menu(events):
-    return None
 
 
 def get_max_score() -> int:
