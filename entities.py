@@ -240,11 +240,11 @@ class Plane(GameObject):
 class Rocket(GameObject):
     is_movable = True
 
-    def __init__(self, x, y, k):
+    def __init__(self, x, y, k, b):
         # y = kx
         self.image = pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE)
         super().__init__(x, y)
-        self.k = k
+        self.k, self.b = k, b
         self.x_speed = 10 if k < 1 else -10
         self.y_speed = abs(self.x_speed * self.k)
         self.update_rect()
@@ -431,8 +431,8 @@ class ObjectAdder(object):
         if position == (-1, -1):
             return
         if time.time() - self.shoot_timer >= 1.0:  # we can shoot once per second
-            k = find_k(*get_abs_from_pygame_coords(position))
-            rocket = Rocket(*rocket_start_pos, k)
+            k, b = find_k_and_b(*get_abs_from_pygame_coords(position), * rocket_start_pos)
+            rocket = Rocket(*rocket_start_pos, k, b)
             entities.append(rocket)
             rockets.append(rocket)
             self.reset_shoot_timer()

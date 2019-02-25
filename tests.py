@@ -1,5 +1,5 @@
 import unittest
 
-from helpers import get_max_score
+from helpers import find_k_and_b
 
-print(get_max_score())
+print(find_k_and_b(0, 8, 1, 11))

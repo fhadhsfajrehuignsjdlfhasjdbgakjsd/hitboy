@@ -8,6 +8,14 @@ from consts import (
     GameStatuses,
     SCREEN_SIZE
 )
+import numpy as np
+
+
+def find_k_and_b(x1, y1, x2, y2):
+    a = np.array([[x1, 1], [x2, 1]])
+    b = np.array([y1, y2])
+    k, b = np.linalg.solve(a, b)
+    return k, b
 
 
 def load_image(name):
@@ -50,10 +58,6 @@ def where_to_shoot(events) -> (int, int):
 
 def get_abs_from_pygame_coords(coords: (int, int)):
     return (coords[0], SCREEN_SIZE[1] - coords[1])
-
-
-def find_k(x, y):
-    return y / x
 
 
 def up_button_clicked(events) -> bool:
