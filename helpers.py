@@ -6,7 +6,8 @@ from consts import (
     BLUE,
     GREY,
     GameStatuses,
-    SCREEN_SIZE
+    SCREEN_SIZE,
+    GAME_OVER_SOUND_NAME
 )
 from math import sin
 import numpy as np
@@ -61,7 +62,7 @@ def where_to_shoot(events) -> (int, int):
 
 
 def up_button_clicked(events) -> bool:
-    return any([event.key in (pygame.K_UP, pygame.K_w)
+    return any([event.key in (pygame.K_UP, pygame.K_w, pygame.K_SPACE)
                 for event in events if event.type == pygame.KEYDOWN])
 
 
@@ -124,4 +125,5 @@ def get_point_on_same_line(point1):
 def finish_game(score) -> int:
     score.check_new_max_score()
     pygame.mouse.set_visible(True)
+    pygame.mixer.Sound(GAME_OVER_SOUND_NAME).play()
     return GameStatuses.GAME_OVER

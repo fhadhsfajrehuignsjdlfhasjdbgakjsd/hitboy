@@ -14,7 +14,7 @@ class GameObject(object):
     is_movable = False
     must_die = False
     can_die = False
-    can_be_destroyed_by_rockets = False
+    can_interact_with_rockets = False
 
     def __init__(self, x: int, y: int):
         self.x, self.y = x, y
@@ -52,6 +52,7 @@ class GameObject(object):
 
 class Floor(GameObject):
     '''element hitboy runs on'''
+    can_interact_with_rockets = True
     is_movable = False
     can_kill_hitboy = False
 
@@ -60,6 +61,11 @@ class Floor(GameObject):
         self.rect = pygame.Rect(
             *FLOOR_RECT_POSITION
         )
+    
+    def interact_with_rockets(self, entities, obstacles, planes, rockets):
+        for rocket in rockets:
+            if self.rect.colliderect(rocket.rect):
+                rocket.delete(entities, obstacles, planes, rockets)
 
     def draw(self, screen):
         pygame.draw.rect(screen, BLACK, self.rect)
@@ -72,6 +78,7 @@ class Hitboy(GameObject):
     y_speed, jump_speed = 0, -600  # pix per second
     can_kill_hitboy = False
     dead = False
+    death_sound = pygame.mixer.Sound('audio/death.wav')
 
     images = [
         pygame.transform.scale(image, HITBOY_SIZE) for image in (
@@ -159,6 +166,7 @@ class Hitboy(GameObject):
                 self.dead = True
                 self.y = DEAD_HITBOY_Y_POSITION
                 self.update_rect()
+                self.death_sound.play()
                 return self.dead
         return False
 
@@ -203,6 +211,7 @@ class Weapon(GameObject):
 
 class Obstacle(GameObject):
     is_movable = True
+    can_interact_with_rockets = True
 
     def __init__(self, x, y, speed):
         image_name = choice(OBSTACLE_IMAGES_NAMES)
@@ -212,6 +221,11 @@ class Obstacle(GameObject):
         )
         self.update_rect()
         self.speed = speed
+    
+    def interact_with_rockets(self, entities, obstacles, planes, rockets):
+        for rocket in rockets:
+            if self.rect.colliderect(rocket.rect):
+                rocket.delete(entities, obstacles, planes, rockets)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -233,12 +247,14 @@ class Obstacle(GameObject):
 
 class Plane(GameObject):
     is_movable = True   
-    can_be_destroyed_by_rockets = True
+    can_interact_with_rockets = True
     can_finish_game = True
     destroyed_image = pygame.transform.scale(
         load_image('boom.png'),
         PLANE_SIZE
     )
+    explode_sound = pygame.mixer.Sound('audio/explosion.wav')
+    fly_sound = pygame.mixer.Sound('audio/plane.wav')
 
     def __init__(self, x, y, speed):
         super().__init__(x, y)
@@ -247,6 +263,7 @@ class Plane(GameObject):
         self.update_rect()
         self.update_mesh()
         self.speed = speed
+        self.fly_sound.play()
         self.destroyed = False
         self.destroyed_time = None
         
@@ -283,11 +300,10 @@ class Plane(GameObject):
 
     def die(self, entities, obstacles, planes, rockets):
         self.image = self.destroyed_image
-        print(time.time() - self.destroyed_time)
-        if time.time() - self.destroyed_time >= 1.0:
+        if time.time() - self.destroyed_time >= 0.8:
             self.delete(entities, obstacles, planes, rockets)
 
-    def try_to_become_destroyed(self, entities, obstacles, planes, rockets):
+    def interact_with_rockets(self, entities, obstacles, planes, rockets):
         if not self.destroyed:
             for rocket in rockets:
                 if self.collides_rocket(rocket):
@@ -295,11 +311,13 @@ class Plane(GameObject):
                     self.destroyed = True
                     self.must_die = True
                     rocket.delete(entities, obstacles, planes, rockets)
+                    self.explode_sound.play()
                     self.die(entities, obstacles, planes, rockets)
 
 
 class Rocket(GameObject):
     is_movable = True
+    launch_sound = pygame.mixer.Sound('audio/bazooka.wav')
 
     def __init__(self, x, y, k, b, rotation_angle):
         # y = kx
@@ -313,6 +331,7 @@ class Rocket(GameObject):
         self.update_rect()
         self.update_mesh()
         self.rotation_angle = rotation_angle
+        self.launch_sound.play()
     
     def update_rect(self):
         self.rect = pygame.Rect(

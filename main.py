@@ -3,6 +3,7 @@ from consts import *
 
 pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 
 
@@ -32,7 +33,6 @@ def main():
     )
     import webbrowser
     timer = pygame.time.Clock()
-    # pygame.mixer.init()
     # pygame.mixer.music.load("audio/monster.mp3")
     # pygame.mixer.music.play()
     game_status = GameStatuses.MENU
@@ -145,8 +145,8 @@ def main():
                     if game_over:
                         game_status = finish_game(score)
                         break
-                if entity.can_be_destroyed_by_rockets:
-                    entity.try_to_become_destroyed(entities, obstacles, planes, rockets)
+                if entity.can_interact_with_rockets:
+                    entity.interact_with_rockets(entities, obstacles, planes, rockets)
                 if entity.must_die:
                     entity.die(entities, obstacles, planes, rockets)
                 entity.draw(screen)
