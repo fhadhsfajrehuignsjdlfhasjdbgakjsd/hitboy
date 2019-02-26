@@ -118,8 +118,13 @@ def main():
             score.draw(screen)
             object_adder.add_planes_and_obstacles_if_necessary(
                 entities, obstacles, planes)
-            # object_adder.add_plane_if_necessary(entities, planes)  # then delete it
-            object_adder.add_rockets_if_necessary(entities, rockets, entities[1].weapon.get_rocket_initial_point(), where_to_shoot(events))
+            # object_adder.add_plane_if_necessary(entities, planes)  # then
+            # delete it
+            object_adder.add_rockets_if_necessary(
+                entities,
+                rockets,
+                entities[1].weapon.get_rocket_initial_point(),
+                where_to_shoot(events))
             entities[1].weapon.rotate(
                 get_angle_by_three_points(
                     get_point_on_same_line(entities[1].weapon.coords()),
@@ -146,7 +151,8 @@ def main():
                         game_status = finish_game(score)
                         break
                 if entity.can_interact_with_rockets:
-                    entity.interact_with_rockets(entities, obstacles, planes, rockets)
+                    entity.interact_with_rockets(
+                        entities, obstacles, planes, rockets)
                 if entity.must_die:
                     entity.die(entities, obstacles, planes, rockets)
                 entity.draw(screen)

@@ -34,7 +34,7 @@ class GameObject(object):
 
     def update_rect(self):
         pass
-    
+
     def delete(self, entities, obstacles, planes, rockets):
         if self in entities:
             entities.remove(self)
@@ -61,7 +61,7 @@ class Floor(GameObject):
         self.rect = pygame.Rect(
             *FLOOR_RECT_POSITION
         )
-    
+
     def interact_with_rockets(self, entities, obstacles, planes, rockets):
         for rocket in rockets:
             if self.rect.colliderect(rocket.rect):
@@ -182,7 +182,7 @@ class Weapon(GameObject):
         self.angle = 0
         self.image = self.orig_image
         self.update_rect()
-        
+
     def get_rocket_initial_point(self):
         x, y = self.image.get_rect()[2:]
         return (self.x + 20, self.y + 20)
@@ -221,7 +221,7 @@ class Obstacle(GameObject):
         )
         self.update_rect()
         self.speed = speed
-    
+
     def interact_with_rockets(self, entities, obstacles, planes, rockets):
         for rocket in rockets:
             if self.rect.colliderect(rocket.rect):
@@ -246,7 +246,7 @@ class Obstacle(GameObject):
 
 
 class Plane(GameObject):
-    is_movable = True   
+    is_movable = True
     can_interact_with_rockets = True
     can_finish_game = True
     destroyed_image = pygame.transform.scale(
@@ -266,10 +266,10 @@ class Plane(GameObject):
         self.fly_sound.play()
         self.destroyed = False
         self.destroyed_time = None
-        
+
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-    
+
     def try_to_finish_game(self) -> bool:
         return (not self.destroyed) and self.x <= 0 - PLANE_SIZE[0]
 
@@ -286,7 +286,7 @@ class Plane(GameObject):
             PLANE_SIZE[0] - 20,
             PLANE_SIZE[1] - 20
         )
-    
+
     def collides_rocket(self, rocket):
         return self.mesh.colliderect(rocket.mesh)
 
@@ -323,7 +323,7 @@ class Rocket(GameObject):
         # y = kx
         self.image = pygame.transform.rotate(
             pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE),
-            rotation_angle    
+            rotation_angle
         )
         super().__init__(x, y)
         self.k, self.b = k, b
@@ -332,7 +332,7 @@ class Rocket(GameObject):
         self.update_mesh()
         self.rotation_angle = rotation_angle
         self.launch_sound.play()
-    
+
     def update_rect(self):
         self.rect = pygame.Rect(
             self.x,
@@ -368,7 +368,7 @@ class Score(object):
         self.max_score = get_max_score()
         self.font = pygame.font.Font('fonts/Roboto-Black.ttf', 25)
         self.reset_score()
-    
+
     def check_new_max_score(self):
         if self.current_score >= self.max_score:
             self.max_score = self.current_score
@@ -379,12 +379,12 @@ class Score(object):
 
     def increase(self):
         self.current_score += 0.1
-    
+
     def draw(self, screen):
         screen.blit(
-                self.font.render(str(int(self.current_score)), True, BLACK),
-                SCORE_INITIAL_POSITION
-            )
+            self.font.render(str(int(self.current_score)), True, BLACK),
+            SCORE_INITIAL_POSITION
+        )
         screen.blit(
             self.font.render('Max: ' + str(int(self.max_score)), True, BLACK),
             MAX_SCORE_INITIAL_POSITION
@@ -400,7 +400,7 @@ class Menu(object):
         if self.game_status == GameStatuses.MENU:
             self.about_item_rect = pygame.Rect(*MENU_ABOUT_ITEM_POSITION)
         else:
-            self.restart_item_rect = pygame.Rect(*MENU_RESTART_ITEM_POSITION)            
+            self.restart_item_rect = pygame.Rect(*MENU_RESTART_ITEM_POSITION)
         self.exit_item_rect = pygame.Rect(*MENU_EXIT_ITEM_POSITION)
         self.font = pygame.font.Font('fonts/Roboto-Black.ttf', 50)
 
@@ -444,7 +444,7 @@ class Menu(object):
                 self.font.render('Restart', True, BLACK),
                 tuple(map(lambda x: x + 25, MENU_RESTART_ITEM_POSITION[:2]))
             )
-        
+
         pygame.draw.rect(screen, BLACK, self.exit_item_rect, 2)
         screen.blit(
             self.font.render('Exit', True, BLACK),
@@ -469,10 +469,10 @@ class ObjectAdder(object):
 
     def reset_obstacle_timer(self):
         self.obstacle_timer = time.time()
-    
+
     def reset_shoot_timer(self):
         self.shoot_timer = time.time()
-    
+
     def reset_plane_timer(self):
         self.plane_timer = time.time()
 
@@ -521,7 +521,12 @@ class ObjectAdder(object):
             entities.append(plane)
             planes.append(plane)
 
-    def add_rockets_if_necessary(self, entities, rockets, rocket_start_pos, position):
+    def add_rockets_if_necessary(
+            self,
+            entities,
+            rockets,
+            rocket_start_pos,
+            position):
         if position == (-1, -1):
             return
         if time.time() - self.shoot_timer >= 1.0:  # we can shoot once per second

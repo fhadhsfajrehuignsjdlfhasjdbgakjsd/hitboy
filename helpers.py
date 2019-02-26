@@ -49,7 +49,7 @@ def check_exit(events) -> bool:
 def check_pause(events) -> bool:
     return any([event.key == pygame.K_ESCAPE
                 for event in events if event.type == pygame.KEYDOWN])
-    
+
 
 def where_to_shoot(events) -> (int, int):
     '''gets the point where user clicks in pygame system

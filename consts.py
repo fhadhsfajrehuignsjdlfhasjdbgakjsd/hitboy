@@ -55,4 +55,3 @@ class UserChoicesMenu:
     ABOUT = 1
     EXIT = 2
     RESTART = 3
-
