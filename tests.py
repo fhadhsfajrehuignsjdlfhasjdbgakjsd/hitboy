@@ -1,5 +1,5 @@
 import unittest
 
-from helpers import find_k_and_b
+from helpers import get_angle_by_three_points
 
-print(find_k_and_b(0, 8, 1, 11))
+print(get_angle_by_three_points((1, 3), (1, 1), (5, 2)))

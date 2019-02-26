@@ -155,7 +155,7 @@ class Weapon(GameObject):
         self.update_rect()
         
     def get_rocket_initial_point(self):
-        return (self.x + WEAPON_SIZE[0], self.y + WEAPON_SIZE[1])
+        return (self.x + WEAPON_SIZE[0] - 10, self.y + WEAPON_SIZE[1] - 25)
     
     def put_weapon_on_the_ground(self):
         self.x, self.y = WEAPON_INITIAL_POSITION
@@ -240,15 +240,18 @@ class Plane(GameObject):
 class Rocket(GameObject):
     is_movable = True
 
-    def __init__(self, x, y, k, b):
+    def delete(self):
+        del self
+
+    def __init__(self, x, y, k, b, rotation_angle):
         # y = kx
         self.image = pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE)
         super().__init__(x, y)
         self.k, self.b = k, b
-        self.x_speed = 10 if k < 1 else -10
-        self.y_speed = abs(self.x_speed * self.k)
+        self.x_speed = get_rocket_speed_by_angle(rotation_angle)
         self.update_rect()
-        print(self.k)
+        self.rotation_angle = rotation_angle
+        print("Angle: {}, speed: {}".format(rotation_angle, self.x_speed))
     
     def update_rect(self):
         self.rect = pygame.Rect(
@@ -262,8 +265,10 @@ class Rocket(GameObject):
         screen.blit(self.image, self.rect)
 
     def move(self, time_passed_in_secs, **kwargs):
-        self.x += int(self.x_speed * time_passed_in_secs)
-        self.y += int(self.y_speed * time_passed_in_secs)
+        self.x += self.x_speed * time_passed_in_secs
+        self.y = self.x * self.k + self.b
+        if ((self.x <= 0 - ROCKET_SIZE[0]) or (self.y <= ROCKET_SIZE[1])):
+            self.must_be_deleted = True
         self.update_rect()
 
 
@@ -426,13 +431,20 @@ class ObjectAdder(object):
             self.speed_of_plane -= 5
             entities.append(plane)
             planes.append(plane)
-    
+
     def add_rockets_if_necessary(self, entities, rockets, rocket_start_pos, position):
         if position == (-1, -1):
             return
-        if time.time() - self.shoot_timer >= 1.0:  # we can shoot once per second
-            k, b = find_k_and_b(*get_abs_from_pygame_coords(position), * rocket_start_pos)
-            rocket = Rocket(*rocket_start_pos, k, b)
+        if time.time() - self.shoot_timer >= 0.1:  # we can shoot once per second
+            k, b = find_k_and_b(*position, *rocket_start_pos)
+            if k is None and b is None:
+                return
+            r_a = get_angle_by_three_points(
+                (rocket_start_pos[0] + 1, rocket_start_pos[1]),
+                rocket_start_pos,
+                position,
+            )
+            rocket = Rocket(*rocket_start_pos, k, b, r_a)
             entities.append(rocket)
             rockets.append(rocket)
             self.reset_shoot_timer()
