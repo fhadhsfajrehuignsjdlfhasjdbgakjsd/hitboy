@@ -87,17 +87,17 @@ def get_rocket_speed_by_angle(rotation_angle):
         rotation_angle = 180 - rotation_angle
         sign = -1
     if rotation_angle <= 55:
-        x_speed = 500
+        x_speed = 600
     elif rotation_angle <= 70:
-        x_speed = 190
+        x_speed = 350
     elif rotation_angle <= 75:
-        x_speed = 100
+        x_speed = 250
     elif rotation_angle <= 85:
-        x_speed = 75
+        x_speed = 125
     elif rotation_angle <= 88:
-        x_speed = 35
+        x_speed = 65
     elif rotation_angle <= 89:
-        x_speed = 10
+        x_speed = 20
     else:
         x_speed = 5
     return x_speed * sign
@@ -115,3 +115,13 @@ def get_angle_by_three_points(point1, point2, point3) -> int:
     angle = np.arccos(cosine_angle)
 
     return int(np.degrees(angle))
+
+
+def get_point_on_same_line(point1):
+    return (point1[0] + 1, point1[1])
+
+
+def finish_game(score) -> int:
+    score.check_new_max_score()
+    pygame.mouse.set_visible(True)
+    return GameStatuses.GAME_OVER

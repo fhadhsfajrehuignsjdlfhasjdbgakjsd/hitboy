@@ -10,12 +10,17 @@ from helpers import get_max_score, set_max_score
 
 class GameObject(object):
     '''base object for all base objects'''
+    can_finish_game = False
     is_movable = False
-    must_be_deleted = False
+    must_die = False
     can_die = False
+    can_be_destroyed_by_rockets = False
 
     def __init__(self, x: int, y: int):
         self.x, self.y = x, y
+
+    def coords(self):
+        return (self.x, self.y)
 
     def draw(self, screen):
         pass
@@ -29,6 +34,20 @@ class GameObject(object):
 
     def update_rect(self):
         pass
+    
+    def delete(self, entities, obstacles, planes, rockets):
+        if self in entities:
+            entities.remove(self)
+        if self in obstacles:
+            obstacles.remove(self)
+        if self in rockets:
+            rockets.remove(self)
+        if self in planes:
+            planes.remove(self)
+        del self
+
+    def die(self, entities, obstacles, planes, rockets):
+        self.delete(entities, obstacles, planes, rockets)
 
 
 class Floor(GameObject):
@@ -149,14 +168,23 @@ class Weapon(GameObject):
 
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.image = pygame.transform.scale(
+        self.orig_image = pygame.transform.scale(
             load_image('launcher.png'), WEAPON_SIZE
         )
+        self.angle = 0
+        self.image = self.orig_image
         self.update_rect()
         
     def get_rocket_initial_point(self):
-        return (self.x + WEAPON_SIZE[0] - 10, self.y + WEAPON_SIZE[1] - 25)
-    
+        x, y = self.image.get_rect()[2:]
+        return (self.x + 20, self.y + 20)
+
+    def rotate(self, angle):
+        angle = min(120, angle)
+        self.angle = angle
+        self.image = pygame.transform.rotate(self.orig_image, angle)
+        self.update_rect()
+
     def put_weapon_on_the_ground(self):
         self.x, self.y = WEAPON_INITIAL_POSITION
         self.update_rect()
@@ -171,7 +199,7 @@ class Weapon(GameObject):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-    
+
 
 class Obstacle(GameObject):
     is_movable = True
@@ -191,7 +219,7 @@ class Obstacle(GameObject):
     def move(self, time_passed_in_secs, **kwargs):
         self.x += self.speed * time_passed_in_secs
         if self.x <= 0 - OBSTACLE_SIZE[0]:
-            self.must_be_deleted = True
+            self.must_die = True
         self.update_rect()
 
     def update_rect(self):
@@ -202,59 +230,100 @@ class Obstacle(GameObject):
             OBSTACLE_SIZE[1]
         )
 
-    def delete(self):
-        del self
-
 
 class Plane(GameObject):
-    is_movable = True
+    is_movable = True   
+    can_be_destroyed_by_rockets = True
+    can_finish_game = True
+    destroyed_image = pygame.transform.scale(
+        load_image('boom.png'),
+        PLANE_SIZE
+    )
 
     def __init__(self, x, y, speed):
         super().__init__(x, y)
         self.image = pygame.transform.scale(
             load_image('plane.png'), PLANE_SIZE)
         self.update_rect()
+        self.update_mesh()
         self.speed = speed
+        self.destroyed = False
+        self.destroyed_time = None
         
     def draw(self, screen):
         screen.blit(self.image, self.rect)
     
+    def try_to_finish_game(self) -> bool:
+        return (not self.destroyed) and self.x <= 0 - PLANE_SIZE[0]
+
     def move(self, time_passed_in_secs, **kwargs):
-        self.x += self.speed * time_passed_in_secs
-        if self.x <= 0 - OBSTACLE_SIZE[0]:
-            self.must_be_deleted = True
-        self.update_rect()
+        if not self.destroyed:
+            self.x += self.speed * time_passed_in_secs
+            self.update_rect()
+            self.update_mesh()
+
+    def update_mesh(self):
+        self.mesh = pygame.Rect(
+            self.x + 10,
+            self.y + 10,
+            PLANE_SIZE[0] - 20,
+            PLANE_SIZE[1] - 20
+        )
+    
+    def collides_rocket(self, rocket):
+        return self.mesh.colliderect(rocket.mesh)
 
     def update_rect(self):
         self.rect = pygame.Rect(
             self.x,
             self.y,
-            OBSTACLE_SIZE[0],
-            OBSTACLE_SIZE[1]
+            PLANE_SIZE[0],
+            PLANE_SIZE[1]
         )
 
-    def delete(self):
-        del self
+    def die(self, entities, obstacles, planes, rockets):
+        self.image = self.destroyed_image
+        print(time.time() - self.destroyed_time)
+        if time.time() - self.destroyed_time >= 1.0:
+            self.delete(entities, obstacles, planes, rockets)
+
+    def try_to_become_destroyed(self, entities, obstacles, planes, rockets):
+        if not self.destroyed:
+            for rocket in rockets:
+                if self.collides_rocket(rocket):
+                    self.destroyed_time = time.time()
+                    self.destroyed = True
+                    self.must_die = True
+                    rocket.delete(entities, obstacles, planes, rockets)
+                    self.die(entities, obstacles, planes, rockets)
 
 
 class Rocket(GameObject):
     is_movable = True
 
-    def delete(self):
-        del self
-
     def __init__(self, x, y, k, b, rotation_angle):
         # y = kx
-        self.image = pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE)
+        self.image = pygame.transform.rotate(
+            pygame.transform.scale(load_image('rocket.png'), ROCKET_SIZE),
+            rotation_angle    
+        )
         super().__init__(x, y)
         self.k, self.b = k, b
         self.x_speed = get_rocket_speed_by_angle(rotation_angle)
         self.update_rect()
+        self.update_mesh()
         self.rotation_angle = rotation_angle
-        print("Angle: {}, speed: {}".format(rotation_angle, self.x_speed))
     
     def update_rect(self):
         self.rect = pygame.Rect(
+            self.x,
+            self.y,
+            ROCKET_SIZE[0],
+            ROCKET_SIZE[1]
+        )
+
+    def update_mesh(self):
+        self.mesh = pygame.Rect(
             self.x,
             self.y,
             ROCKET_SIZE[0],
@@ -267,9 +336,10 @@ class Rocket(GameObject):
     def move(self, time_passed_in_secs, **kwargs):
         self.x += self.x_speed * time_passed_in_secs
         self.y = self.x * self.k + self.b
-        if ((self.x <= 0 - ROCKET_SIZE[0]) or (self.y <= ROCKET_SIZE[1])):
-            self.must_be_deleted = True
+        if ((self.x <= 0 - ROCKET_SIZE[0]) or (self.y <= 0 - ROCKET_SIZE[1])):
+            self.must_die = True
         self.update_rect()
+        self.update_mesh()
 
 
 # score is not game object
@@ -435,7 +505,7 @@ class ObjectAdder(object):
     def add_rockets_if_necessary(self, entities, rockets, rocket_start_pos, position):
         if position == (-1, -1):
             return
-        if time.time() - self.shoot_timer >= 0.1:  # we can shoot once per second
+        if time.time() - self.shoot_timer >= 1.0:  # we can shoot once per second
             k, b = find_k_and_b(*position, *rocket_start_pos)
             if k is None and b is None:
                 return

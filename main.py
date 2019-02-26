@@ -26,6 +26,9 @@ def main():
         check_pause,
         up_button_clicked,
         where_to_shoot,
+        get_angle_by_three_points,
+        get_point_on_same_line,
+        finish_game
     )
     import webbrowser
     timer = pygame.time.Clock()
@@ -101,6 +104,7 @@ def main():
                     webbrowser.open(ABOUT_URL)
 
         elif game_status == GameStatuses.PLAYING:
+            # entities[1] is main charecter
             events = pygame.event.get()
             if check_pause(events):
                 game_status = GameStatuses.PAUSE
@@ -112,9 +116,17 @@ def main():
             clean_screen(screen, GameStatuses.PLAYING)
             score.increase()
             score.draw(screen)
-            # object_adder.add_planes_and_obstacles_if_necessary(
-            #     entities, obstacles, planes)
+            object_adder.add_planes_and_obstacles_if_necessary(
+                entities, obstacles, planes)
+            # object_adder.add_plane_if_necessary(entities, planes)  # then delete it
             object_adder.add_rockets_if_necessary(entities, rockets, entities[1].weapon.get_rocket_initial_point(), where_to_shoot(events))
+            entities[1].weapon.rotate(
+                get_angle_by_three_points(
+                    get_point_on_same_line(entities[1].weapon.coords()),
+                    entities[1].weapon.coords(),
+                    pygame.mouse.get_pos(),
+                )
+            )
             for entity in entities:
                 if entity.is_movable:
                     entity.move(
@@ -125,15 +137,19 @@ def main():
                     dead = entity.try_to_die(obstacles)
                     if dead:
                         entity.draw(screen)
-                        score.check_new_max_score()
                         pygame.display.flip()
-                        game_status = GameStatuses.GAME_OVER
-                        pygame.mouse.set_visible(True)
+                        game_status = finish_game(score)
                         break
-                if entity.must_be_deleted:
-                    entity.delete()
-                else:
-                    entity.draw(screen)
+                if entity.can_finish_game:
+                    game_over = entity.try_to_finish_game()
+                    if game_over:
+                        game_status = finish_game(score)
+                        break
+                if entity.can_be_destroyed_by_rockets:
+                    entity.try_to_become_destroyed(entities, obstacles, planes, rockets)
+                if entity.must_die:
+                    entity.die(entities, obstacles, planes, rockets)
+                entity.draw(screen)
             screen.blit(pointer, pygame.mouse.get_pos())
         pygame.display.flip()
 
