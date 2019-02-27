@@ -1,7 +1,7 @@
 # Hitboy.
 ![alt text](https://raw.githubusercontent.com/solemn-leader/hitboy/master/images/sample.png)
 
-Hitboy. is an indie game about Hitman's son who had to struggle with alien forces two years after his father's death. The goal is to always move forward trying not to die and not to let enemy planse reach your base.
+Hitboy. is an indie game about Hitman's son who had to struggle with alien forces two years after his father's death. The goal is to always move forward trying not to die and not to let enemy planes reach your base.
 
 ## Installation
 Download source code via [git](https://git-scm.com/downloads).
