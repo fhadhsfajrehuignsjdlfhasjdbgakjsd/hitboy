@@ -79,6 +79,7 @@ class Hitboy(GameObject):
     can_kill_hitboy = False
     dead = False
     death_sound = pygame.mixer.Sound('audio/death.wav')
+    jump_sound = pygame.mixer.Sound('audio/jump.wav')
 
     images = [
         pygame.transform.scale(image, HITBOY_SIZE) for image in (
@@ -123,7 +124,8 @@ class Hitboy(GameObject):
             self.change_image()
         if self.stands_on_floor():
             if kwargs.get('up_button_clicked', False):
-                self.y_speed = self.jump_speed  # self.jump
+                self.jump_sound.play()
+                self.y_speed = self.jump_speed
             else:
                 self.put_hero_on_the_ground()
                 self.weapon.put_weapon_on_the_ground()
